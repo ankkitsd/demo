@@ -8,12 +8,13 @@ Run this SQL in your Supabase SQL Editor to create the required tables.
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Shops table
+-- Shops table (linked to auth.users)
 CREATE TABLE shops (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   owner_name VARCHAR(255) NOT NULL,
-  phone VARCHAR(20) NOT NULL,
+  email VARCHAR(255),
+  phone VARCHAR(20),
   address TEXT,
   gst_number VARCHAR(20),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -108,37 +109,34 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
--- Example RLS policies (adjust based on your auth setup)
-CREATE POLICY "Allow all operations for authenticated users" ON shops
-  FOR ALL USING (auth.role() = 'authenticated');
+-- RLS policies - Users can only access their own shop data
+CREATE POLICY "Users can view own shop" ON shops
+  FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON customers
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can insert own shop" ON shops
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON products
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can manage customers for own shop" ON customers
+  FOR ALL USING (shop_id IN (SELECT id FROM shops WHERE id = auth.uid()));
 
-CREATE POLICY "Allow all operations for authenticated users" ON transactions
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can manage products for own shop" ON products
+  FOR ALL USING (shop_id IN (SELECT id FROM shops WHERE id = auth.uid()));
 
-CREATE POLICY "Allow all operations for authenticated users" ON payments
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can manage transactions for own shop" ON transactions
+  FOR ALL USING (shop_id IN (SELECT id FROM shops WHERE id = auth.uid()));
 
--- Insert demo shop data (optional) - UUID will be auto-generated
-INSERT INTO shops (name, owner_name, phone, address) VALUES
-  ('My Shop', 'Shop Owner', '9876543210', 'Mumbai, India');
-
--- Note: To add demo customers/products, first get the generated shop UUID from the shops table,
--- then use that UUID in the customer/product INSERT statements.
+CREATE POLICY "Users can manage payments for own shop" ON payments
+  FOR ALL USING (shop_id IN (SELECT id FROM shops WHERE id = auth.uid()));
 ```
 
 ## Setup Instructions
 
-1. Go to your Supabase dashboard: https://izuvofgrctwolddapzxi.supabase.co
-2. Navigate to **SQL Editor**
-3. Copy and paste the entire SQL script above
-4. Click **Run** to execute
-5. Verify tables are created under **Table Editor**
+1. **First time setup**: Run this SQL script ONLY once in Supabase SQL Editor
+2. Go to your Supabase dashboard: https://izuvofgrctwolddapzxi.supabase.co
+3. Navigate to **SQL Editor**
+4. Copy and paste the entire SQL script above (from CREATE EXTENSION to the last policy)
+5. Click **Run** to execute
+6. Verify tables are created under **Table Editor**
 
 ## Features Included
 
@@ -154,7 +152,7 @@ INSERT INTO shops (name, owner_name, phone, address) VALUES
 ## Next Steps
 
 After running the schema:
-1. Test the app locally: `npm run dev`
-2. Add your first customer from the UI
+1. Sign up on the landing page to create your account and shop
+2. Add your first customer from the Customers page
 3. Create transactions to track udhaar
 4. Send WhatsApp payment reminders
