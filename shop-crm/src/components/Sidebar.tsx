@@ -1,9 +1,10 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Users, Package, IndianRupee, Home, Settings, LogOut } from 'lucide-react'
+import { useAuthStore } from '../store/authStore'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Transactions', href: '/transactions', icon: IndianRupee },
   { name: 'Products', href: '/products', icon: Package },
@@ -12,6 +13,13 @@ const navigation = [
 
 export const Sidebar: React.FC = () => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { signOut } = useAuthStore()
+
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/')
+  }
 
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
@@ -44,7 +52,10 @@ export const Sidebar: React.FC = () => {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
-          <button className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <LogOut className="w-5 h-5 mr-3" />
             <span className="font-medium">Logout</span>
           </button>

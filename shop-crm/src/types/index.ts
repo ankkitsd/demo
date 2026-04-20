@@ -30,6 +30,8 @@ export interface Product {
   price: number
   cost?: number
   stock_quantity: number
+  min_stock?: number
+  description?: string
   unit?: string
   category?: string
   created_at: string
