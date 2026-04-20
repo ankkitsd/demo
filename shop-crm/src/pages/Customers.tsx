@@ -5,23 +5,24 @@ import { CustomerModal } from '../components/CustomerModal'
 import { customerApi } from '../lib/api'
 import { Customer } from '../types'
 import { Plus } from 'lucide-react'
-
-const DEMO_SHOP_ID = 'demo-shop-1'
-const DEMO_SHOP_NAME = 'My Shop'
+import { useAuthStore } from '../store/authStore'
 
 export const Customers: React.FC = () => {
+  const { user } = useAuthStore()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
 
   useEffect(() => {
-    loadCustomers()
-  }, [])
+    if (user) {
+      loadCustomers(user.id)
+    }
+  }, [user])
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (shopId: string) => {
     try {
-      const data = await customerApi.getAll(DEMO_SHOP_ID)
+      const data = await customerApi.getAll(shopId)
       setCustomers(data)
     } catch (error) {
       console.error('Error loading customers:', error)
@@ -31,13 +32,14 @@ export const Customers: React.FC = () => {
   }
 
   const handleAddCustomer = async (customerData: Partial<Customer>) => {
+    if (!user) return
     try {
       await customerApi.create({
         ...customerData,
-        shop_id: DEMO_SHOP_ID,
+        shop_id: user.id,
         total_due: 0
       } as any)
-      loadCustomers()
+      loadCustomers(user.id)
     } catch (error) {
       console.error('Error creating customer:', error)
       alert('Failed to add customer')
@@ -48,7 +50,7 @@ export const Customers: React.FC = () => {
     if (!editingCustomer) return
     try {
       await customerApi.update(editingCustomer.id, customerData)
-      loadCustomers()
+      if (user) loadCustomers(user.id)
       setEditingCustomer(null)
     } catch (error) {
       console.error('Error updating customer:', error)
@@ -60,7 +62,7 @@ export const Customers: React.FC = () => {
     if (!confirm('Are you sure you want to delete this customer?')) return
     try {
       await customerApi.delete(id)
-      loadCustomers()
+      if (user) loadCustomers(user.id)
     } catch (error) {
       console.error('Error deleting customer:', error)
       alert('Failed to delete customer')
@@ -75,6 +77,16 @@ export const Customers: React.FC = () => {
   const openAddModal = () => {
     setEditingCustomer(null)
     setIsModalOpen(true)
+  }
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Please log in to view customers</div>
+        </div>
+      </Layout>
+    )
   }
 
   if (loading) {
@@ -107,7 +119,7 @@ export const Customers: React.FC = () => {
         customers={customers}
         onEdit={openEditModal}
         onDelete={handleDeleteCustomer}
-        shopName={DEMO_SHOP_NAME}
+        shopName={user.email || 'My Shop'}
       />
 
       <CustomerModal

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Layout } from '../components/Layout'
 import { DashboardStats } from '../components/DashboardStats'
 import { customerApi, transactionApi, productApi } from '../lib/api'
-
-const DEMO_SHOP_ID = 'demo-shop-1'
+import { useAuthStore } from '../store/authStore'
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuthStore()
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalDue: 0,
@@ -15,15 +15,17 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    if (user) {
+      loadDashboardData(user.id)
+    }
+  }, [user])
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (shopId: string) => {
     try {
       const [customers, transactions, products] = await Promise.all([
-        customerApi.getAll(DEMO_SHOP_ID).catch(() => []),
-        transactionApi.getAll(DEMO_SHOP_ID).catch(() => []),
-        productApi.getAll(DEMO_SHOP_ID).catch(() => [])
+        customerApi.getAll(shopId).catch(() => []),
+        transactionApi.getAll(shopId).catch(() => []),
+        productApi.getAll(shopId).catch(() => [])
       ])
 
       const totalDue = customers.reduce((sum, c) => sum + c.total_due, 0)
